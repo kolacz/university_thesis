@@ -1,0 +1,310 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts,amssymb,amsthm,epsfig,epstopdf,titling,url,array}
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definicja}
+\newtheorem*{prob}{Problem}
+
+\begin{document}
+
+\title{Grupowanie szeregów czasowych}
+\maketitle
+
+\tableofcontents
+
+\section{TODO}
+Efektywna implementacja nietrywialnych metod, algorytmów czy struktur danych.
+Treścią pracy jest implementacja elementów o odpowiednim stopniu trudności
+\begin{itemize}
+\item Opis implementowanego zagadnienia, z uwzględnieniem kontekstu i zastosowań.
+\item Część programistyczna: udokumentowana implementacja z dostępem do źródeł i działającej wersji.
+\item Analiza uzyskanych wyników — jakości stworzonej implementacji, w tym porównanie z wynikami teoretycznymi (oczekiwanymi) i ewentualnie typowymi implementacjami.
+\item Przedyskutowanie metod testowania/porównania stworzonej implementacji z innymi rozwiązaniami.
+Przegląd źródeł.
+\end{itemize}
+
+%%%%% POCZĄTEK ZASADNICZEGO TEKSTU PRACY
+
+\section{Wprowadzenie}
+
+% NA ZAKOŃCZENIE CHARAKTERYSTYKA IMPLEMENTACJI
+
+\section{Kontekst i zastosowania - motywacja}
+
+\section{Opis teoretyczny}
+
+%Grupowanie podciągów szeregu czasowego można 
+
+\begin{defn} 
+\textit{Szeregiem czasowym (jednowymiarowym)} $T$ o długości $n$ nazywamy ciąg liczb $t_{i} \in \mathbb{R}$, taki że
+$T = (t_{1}, t_{2}, ..., t_{n})$.
+\end{defn}
+
+\begin{defn}
+\textit{Podciągiem} długości $m$ szeregu czasowego $T$ o długości $n$
+nazywamy szereg czasowy $T_{i,m} = (t_{i}, t_{i+1}, ..., t_{i+m-1})$, gdzie $1 \leqslant i \leqslant n -m+1$, $m < n$.
+\end{defn}
+
+\subsection{Definicja problemu i opis zagadnienia}
+
+%Mając dany szereg czasowy chcemy znaleźć jego podział
+%na parami rozłączne podciągi, w którym każdy z nich przypisany jest do dokładnie
+%jednej grupy. Dowolną grupę (klaster) stanowić będzie niepusty zbiór podciągów, 
+%które uważamy między sobą za podobne.
+\begin{prob}[Grupowanie]
+Mając dany szereg czasowy chcemy znaleźć przeciwdziedzinę suriekcji z pewnego zbioru parami rozłącznych podciągów
+szeregu czasowego w zbiór \textit{grup}. Dowolną grupę (\textit{klaster}) stanowić będzie niepusty zbiór podciągów, które uważamy za podobne względem siebie. Od wynikowej \textit{klasteryzacji} wymagamy, żeby spełniała określony warunek.
+\end{prob}
+
+Rozpatrując przestrzenie afiniczne nad ciałem liczb rzeczywistych, naturalnym jest przyjęcie, że
+podobieństwo dwóch elementów jest ujemnie skorelowane z dzielącą je odległością. W dziedzinie 
+szeregów czasowych autorzy często skłaniają się ku wyborowi metryki euklidesowej:
+
+\begin{defn}
+\textit{Odległością} między dwoma szeregami czasowymi $T_{i}$ oraz $T_{j}$ nazywamy wartość
+$dist(T_{i},T_{j}) = \sqrt{\sum_{k=1}^{n} (t_{i,k}-t_{j,k})^2}$.
+\end{defn}
+
+Na podstawie wyników wielu doświadczeń jest ona uważana za konkurencyjną bądź skuteczniejszą od bardziej
+złożonych miar [MKalg]. Co więcej, za wybraniem jej przemawia także szybkość wykonywania obliczeń, 
+która ma znaczenie przy dużych zbiorach danych. 
+
+Spośrod wszystkich możliwych grupowań podciągów rozwiązaniem nazywamy to, które maksymalizuje pewną
+\textit{miarę jakości grupowania}.~Jej wybór jest kluczowy dla sposobu działania algorytmu, a co za tym idzie,
+decyduje o~uzyskanych wynikach. Przykładem takiej miary może być stosunek sumarycznego podobieństwa 
+elementów w obrębie grup do sumarycznego podobieństwa wszystkich par elementów pochodzących z różnych grup.
+Współgra to z intuicyjnym stwierdzeniem, że im bardziej zbliżone do siebie są elementy w grupach a różne między grupami,
+tym dany rezultat jest lepszy. Jednak taki wybór jest niedopuszczalny ze względu na złożoność obliczeniową,
+niezależnie czy mówimy o podciągach szeregów czasowych, czy o mniej złożonych danych.
+Istnieją oczywiście miary, które sprawdzają się w zastosowaniach praktycznych. Wiele z nich, tak jak i opisywany
+przeze mnie algorytm, opiera się elementach reprezentujących daną grupę, tzw. \textit{wektorach kodowych}, które w wielu opisach 
+są utożsamiane z~\textit{centroidami}.
+
+W metodach klasteryzacji centroidy (\textit{centra}) są często średnią ze wszystkich członków grupy (niekoniecznie wtedy muszą należeć do klastra) lub rzadziej, faktycznym członkiem najbliższym tej średniej. 
+Zazwyczaj stanowią one część rozwiązania jako dodatkowe wartości cechujące i ściśle powiązane z wynikowymi zbiorami. Na potrzeby dalszych rozważań podamy definicję \textit{średniej ważonej}, którą będziemy wykorzystywać przy wyliczaniu centroidów.
+
+\begin{defn}
+\textit{Średnią ważoną} z dwóch podciągów \\$P = (p_{1}, p_{2}, ..., p_{m})$ i $Q = (q_{1}, q_{2}, ..., q_{m})$ nazywamy podciąg $R = (r_{1}, r_{2}, ..., r_{m})$, taki że $r_{i} = \frac{p_{i}\omega_{p} + q_{i}\omega_{q}}{\omega_{p} + \omega_{q}}$, gdzie $\omega_{p}$ i $\omega_{q}$ to \textit{wagi} odpowiednio podciągów $P$ i $Q$.
+\end{defn}
+
+Podejść do uzyskania znaczących wyników w dziedzinie szeregów czasowych było kilka. Niestety pierwsze metody 
+ze względu na swoją gorliwość, tj. grupowanie wszelkich możliwych podciągów, skutkowały uzyskiwaniem centroidów o sinusoidalnym 
+kształcie. Klasteryzacji poddawane zostawały także elementy odstające (ang. \textit{outliers})
+czy takie, których znaczenie dla danych jest znikome. Przykładowo, gdy chcemy rozpoznawać pismo naturalne, nie mają 
+dużego znaczenia połączenia między literami. Zatem przy założeniu, że generowane przez algorytm centra oddają charakter 
+elementów klastra, rozsądnym wydaje się odrzucanie podciągów, które znacząco nie pasują do żadnego z nich. Między innymi na tej obserwacji opiera się badany przeze mnie algorytm selektywnego grupowania podciągów szeregów czasowych,
+nazywany w dalszej części pracy \textbf{SSTS} (ang. \textit{Selective Subsequence Time Series clustering}).
+
+W mojej implementacji korzystam z dwóch klas, których instancje będą reprezentować odpowiednio podciągi oraz klastry:
+
+% KOD KLAS
+
+\section{Analiza algorytmu SSTS}
+
+\subsection{Konstrukcja bazy danych}
+
+Punktem wyjścia dla opisywanej przeze mnie strategii klasteryzacji jest zastosowanie techniki \textit{``sliding window''}. 
+To popularne w dziedzinie szeregów czasowych pojęcie służy do wyodrębnienia z danych wejściowych wszystkich 
+możliwych podciągów, które zebrane w jednej bazie danych, stanowić będą przedmiot grupowania. Odbywa się to poprzez
+przesuwanie ramki o stałej szerokości, która w każdym momencie zawiera w sobie jeden z podciągów.~Oczywistym jest, że
+jej rozmiar determinuje dalszy przebieg algorytmu, zatem będzie on jego głównym parametrem.  
+Nasuwa się wniosek, że ustalanie takiej wartości z~góry jest nie tylko niepraktyczne bądź trudne, lecz także uniemożliwia
+odnajdowanie podobieństw w samej strukturze szeregu czasowego. Podciągi o podobnym kształcie powinny móc znaleźć się w
+jednej grupie, nawet gdy są różnej długości. Problemem staje się wówczas mierzenie odległości między nimi,
+jednak autorzy algorytmu SSTS rozwiązują go za pomocą metody ze skalowaniem jednostajnym.
+
+\begin{defn}
+\textit{Skalowaniem jednostajnym} do długości $m$ (z czynnikiem skalującym $f \geqslant 1$) nazywamy przekształcenie
+dowolnego z szeregów $T=(t_{1},t_{2},..., t_{n})$, dla $\lceil m/f \rceil \leqslant n \leqslant \lfloor mf \rfloor$, w wyniku którego
+otrzymujemy nowy szereg czasowy $T'=(t'_{1}, t'_{2},..., t'_{m})$, gdzie $t'_{i} = t_{\lceil i \frac{n}{m} \rceil} $.
+\end{defn}
+
+Oprócz podanej przez użytkownika szerokości  \textit{``sliding window''} - $w$, dodatkowym parametrem staje się liczba rzeczywista $f \geqslant 1$, 
+za pomocą której dysponujemy ramkami o szerokości od $\lceil w/f \rceil$ do $\lfloor wf \rfloor$. W konsekwencji baza danych składa się
+z podciągów o różnej długości, które za pomocą skalowania jednostajnego rozciągamy albo zwężamy do tej samej długości $w$.
+
+Przed rozpoczęciem grupowania każdy z podciągów dodatkowo poddawany jest \textit{standaryzacji}, dzięki której porównywane będą własności 
+strukturalne a~nie konkretne wartości liczbowe [example4]. Dodatkowo będziemy mieli możliwość wykluczenia zbędnych podciągów stałych, dla 
+których odchylenie standardowe wynosi $0$.
+
+\begin{defn}
+\textit{Standaryzacja} szeregu czasowego to przeskalowanie jego elementów na wartości
+o rozkładzie $\mathcal{N}(0, 1)\,$.
+\\ Dany podciąg $T_{i,m} = (t_{i}, t_{i+1}, ..., t_{i+m-1})$, którego wartością oczekiwaną jest $\mu$, a odchyleniem standardowym $\sigma$, po standaryzacji ma postać \\$T'_{i,m} = (t'_{i}, t'_{i+1}, ..., t'_{i+m-1})$, gdzie $t'_{k} = \frac{t_{k}-\mu}{\sigma}$.
+\end{defn}
+
+Wobec powyższych ustaleń funkcja inicjująca algorytm SSTS ma następującą postać:
+
+% PSEUDOKOD/KOD FUNKCJI extract_subsequences
+
+
+\subsection{Kodowanie wejściowego szeregu czasowego}
+
+Nasze dążenia do uzyskania optymalnego grupowania wspomagane będą przez ideę kodowania danych zaadaptowaną do charakterystyki
+szeregów czasowych. Każda z operacji wykonywana przez algorytm może być interpretowana jako konstrukcja lub edycja abstrakcyjnego słownika.~Kluczami słownika będą jednoelementowe \textit{symbole kodujące} a odpowiadającymi wartościami - \textit{wektory kodujące}. Jego zastosowaniem
+jest zastępowanie elementów z jednego klastra tym samym symbolem kodującym, którego wartością słownikową będzie reprezentacja
+centroidu. Tym samym słownik wraz z zakodowanym szeregiem czasowym jednoznacznie określa grupowanie.
+
+%PRZY TWORZENIU CENTROIDÓW KORZYSTAMY Z ŚREDNIEJ WAŻONEJ
+
+
+% OPCJONALNIE PRZYKŁAD
+
+Istotny jest fakt, że realizowane w ten sposób kodowanie możemy traktować jako redukcje długości danych wejściowych, 
+gdyż w kolejnych krokach podciągi są zastępowane przez krótkie symbole. Co więcej, im liczniejszy jest podzbiór podciągów 
+wykorzystanych podczas klasteryzacji, tj.~im większa jest kompresja, tym bardziej wartościowy jest rezultat.
+Wobec tego pierwszym z wiodących kryteriów, rozpatrywanych przy wyborze optymalnego stanu wynikowego, jest sumaryczna wartość 
+\textit{wskaźników kompresji} danych.
+
+\begin{defn}
+\textit{Wskaźnik kompresji} $(\tilde{R})$ jest określony jako stosunek rozmiaru redukcji (uwzględniając konstrukcję słownika) do długości danych wejściowych.
+\end{defn}
+
+Oczywiście w danych ze świata rzeczywistego bardzo rzadko zaobserwujemy, że każdy klaster będzie składał się z jednakowych podciągów.
+Wprowadzona zostanie zatem \textit{funkcja błędu}, oceniająca różnice między elementami wewnątrz grupy, która stanowić będzie kolejny składnik 
+miary jakości grupowania.
+
+\begin{defn}
+Niech $C$ będzie dowolną grupą, a $c$ - jej centrum.\\
+\textit{Funkcją błędu} nazywamy $E(C) = \sum_{v \in C}{dist(c, v)}$.
+\end{defn}
+\begin{defn}
+\textit{Błędem grupowania} $(\tilde{E})$ nazywamy sumę wartości funkcji błędu dla każdego z klastrów w grupowaniu.
+\end{defn}
+
+Intuicja podpowiada, a strategia zastosowana w algorytmie zapewnia, że wraz ze wzrostem kompresji danych rosnąć będzie błąd grupowania.
+Po analizie głównych procedur opiszemy, jak określić ich optymalny stosunek wyznaczający rozwiązanie.
+
+
+\subsection{Strategia i opis działania}
+Algorytm iteracyjnie podstawia za bieżący rezultat wartość wynikową jednej z trzech funkcji.
+Zachłannie wybieramy tę, która minimalizuje \textit{przyrost błędu grupowania} rozumiany jako różnica błędów grupowania po i przed operacją: $$\Delta \tilde{E} = \tilde{E}_{after} - \tilde{E}_{before} $$
+
+
+%PSEUDOKOD SSTS
+
+\subsubsection{Funkcja \textit{Create cluster}}
+
+\begin{itemize}
+
+\item Zasada działania: \\Tworzy nową grupę z pary najbardziej podobnych podciągów z obecnej bazy danych. 
+
+\item Wskaźnik kompresji: \\
+Z dwóch podciągów długości $u$ i $v$ tworzona jest grupa $C$, której wektorem kodowym zostanie ciąg długości $w$.
+Możemy to interpretować jako redukcję danych wejściowych długości $L$, polegającą na zastąpieniu dwóch podciągów o łącznej
+długości $(u+v)$ tymi samymi symbolami kodującym długości $1$. Tworzymy przy tym wartość słownikową tego symbolu o długości $w$. \\
+        $$\tilde{R} = \frac{(u+v) - (2 + w)}{L}$$
+\item Przyrost błędu grupowania: $\Delta \tilde{E} = E(C)$
+
+\end{itemize}
+
+Znajdowanie dwóch najbardziej podobnych podciągów odbywa się za pomocą \textit{algorytmu \textbf{MK}},
+uznawanego za najefektywniejszy spośród stosujących odległość euklidesową (jego szczegółowy opis znajduje się w załączniku A).
+Po zakończonym wyszukiwaniu konieczne jest usunięcie z bazy danych tej pary oraz wszystkich pozostałych podciągów, które nachodzą na którykolwiek z nich, aby nasz rezultat był zgodny z definicją problemu.
+
+    %PSEUDOKOD 
+
+\subsubsection{Funkcja \textit{Update cluster}} 
+
+\begin{itemize}
+
+\item Zasada działania: \\
+Do jednej z grup dodaje podciąg najbardziej podobny do jej centroidu.
+
+\item Wskaźnik kompresji: \\
+Podciąg długości $u$ dodajemy do jednej z aktualnie istniejących grup $C$ i wyliczamy na nowo jej wektor kodowy za pomocą średniej ważonej $u$ oraz centrum $C$, z wagami odpowiednio $1$ oraz $|C|$. W ten sposób powstaje nowy klaster $C'$.
+W miejsce podciągu umieszczamy symbol kodowy długości $1$ i nie zmieniamy przy tym rozmiaru aktualnego słownika.
+$$\tilde{R} = \frac{u - 1}{L}$$
+    
+\item Przyrost błędu grupowania: $\Delta \tilde{E} = E(C') - E(C)$
+
+\end{itemize}
+
+Wybór klastra i podciągu przebiega następująco: dla każdej grupy, z bazy danych wyszukiwany jest podciąg najbardziej podobny do jej centroidu. Dodawany jest wtedy, gdy skutkuje to najmniejszą wartością funkcji błędu dla każdej z grup.
+Podobnie jak w przypadku \textit{Create cluster} - z bazy danych musimy usunąć wszystkie podciągi nachodzące na ten wybrany.
+
+    %PSEUDOKOD 
+
+\subsubsection{Funkcja \textit{Merge clusters}}
+
+\begin{itemize}
+\item Zasada działania: \\ 
+Scala dwie grupy o najbardziej zbliżonych centrach.
+\item Wskaźnik kompresji: \\
+Łącząc dwie grupy $C_{1}$ i $C_{2}$ sumujemy zbiory ich członków, 
+a centroidem nowo powstałego klastra $C'$ jest uśredniona wartość dwóch poprzednich z~wagami odpowiednio $|C_{1}|$ oraz $|C_{2}|$.
+Ze słownika usuwamy dwa wektory kodowe i dodajemy jeden nowy, wszystkie o długości $w$.
+$$\tilde{R} = \frac{w}{L} $$
+\item Przyrost błędu grupowania: $\Delta \tilde{E} = E(C') - (E(C_{1}) + E(C_{2}))$
+
+\end{itemize}
+
+Stosujemy tu rozwiązanie siłowe ze względu na niewielką liczbę grup w~dowolnym momencie działania programu.
+Scalamy wszystkie możliwe pary grup i~za rezultat przyjmujemy połączenie, w wyniku którego otrzymamy minimalną wartość funkcji błędu dla nowo powstałej grupy.
+
+%PSEUDOKOD 
+
+\subsection{Stan wynikowy}
+Po każdym obrocie pętli, algorytm SSTS dysponuje 
+błędem grupowania, sumą dotychczasowych współczynników kompresji oraz \textbf{bieżącym zbiorem grup}, który jest zapamiętywany na liście wszystkich pośrednich stanów.
+Będzie on kontynuował swoje działanie tak długo, dopóki może wykonać \textit{jakąkolwiek} z~trzech głównych funkcji.
+
+Istotna jest obserwacja, że od pewnego momentu klasteryzacje istotnie tracą na jakości ze względu na generowany duży błąd grupowania.
+Spowodowany jest on wykonywaniem kolejnych operacji niejako na siłę, gdyż algorytm jest zmuszony wywołać np.~funkcję \textit{Update cluster},
+w której wybrany podciąg nie pasuje już tak dobrze do wskazanej grupy.~Nic też nie stoi na przeszkodzie, by w końcowych iteracjach SSTS scalał dwa klastry, które nie powinny być scalone.
+Wobec tego istnieje stan wynikowy, w którym relacja błędu grupowania do uzyskanej kompresji jest optymalna, a po którym błąd zaczyna 
+drastycznie rosnąć. Wskazać go można za pomocą funkcji obrazującą ową relację.
+Mianowicie dzięki aproksymacji jej wielomianem pierwszego stopnia, jesteśmy w stanie wskazać \textit{``knee point''} - punkt, 
+w którym różnica między wartościami na prostej a wartościami przybliżanej funkcji jest największa.
+
+PLOT% PRZYKŁADOWY WYKRES
+
+Oczywiście ten wykres, a w konsekwencji wybór rozwiązania spośród wszystkich stanów pośrednich, możemy sporządzić dopiero po 
+zakończeniu działania programu.
+
+\section{Wariant dla danych wielowymiarowych}
+
+W swojej implementacji rozszerzyłem algorytm SSTS o możliwość działania na wielowymiarowych szeregach czasowych.
+
+\begin{defn}
+\textit{Szeregiem czasowym wielowymiarowym} ${T}$ długości $m$ nazywamy ciąg wektorów $v_{i} \in \mathbb{R}^{n}$, $n \geqslant 2$, taki że 
+${T} = (v_{1}, v_{2}, ..., v_{m})$.
+Składa się on z $n$ jednowymiarowych szeregów czasowych $T_{i}$, takich że $t_{ij} = v_{ji}$.
+\end{defn}
+
+Przypadek wielowymiarowy zmusza nas do dostosowania metody obliczania odległości między podciągami, będącej składową każdej z procedur.
+Obecnie zamiast ciągów liczb mamy ciągi wektorów, więc podciągi szeregu czasowego mają postać macierzy.
+Korzystamy zatem z uogólnienia metryki euklidesowej zdefiniowanej jako wartość \textit{normy Frobeniusa} dla różnicy macierzy:
+
+$$ dist(A, B) = ||A - B||_{F} = \sqrt{\sum_{i,j} (a_{ij} - b_{ij})^{2}} $$
+
+Analogicznie, do większej liczby wymiarów dostosować należy metodę standaryzacji. Dla danego podciągu będziemy ją wykonywać osobno dla każdego wymiaru, jakbyśmy standaryzowali składowe jednowymiarowe szeregi czasowe. Pozostała część algorytmu zasadniczo pozostaje niezmieniona. Pojawia się jednak problem z wizualizacją otrzymanych wyników, gdyż nie jesteśmy w stanie z łatwością intrepretować wykresów dla szeregów czasowych o wymiarowości większej niż $2$.
+
+%% METODA (PCA?)
+
+\section{Wyniki doświadczeń}
+
+\subsection{Dane jednowymiarowe}
+
+% DŁUGI CZAS DLA f>1
+
+\subsection{Dane wielowymiarowe}
+
+% CIĘŻKIE DO ZINTERPRETOWANIA WYNIKI DLA MAŁO CZYTELNYCH DANYCH
+
+\section{Podsumowanie}
+
+%%%%% BIBLIOGRAFIA
+
+\begin{thebibliography}{1}
+\bibitem{example} S. Rodpongpun, V. Niennattrakul, C. A. Ratanamahatana, Selective Subsequence Time Series clustering, Knowledge-Based Systems 35 (2012) 361–368.
+\bibitem{example2} A. Mueen, E.J. Keogh, Q. Zhu, S. Cash, B. Westover, Exact Discovery of Time Series Motifs, in: SIAM International Conference on Data Mining (SDM’09), Nevada, USA, 2009, pp. 473–484.
+\bibitem{example3} S. Zolhavarieh, S. Aghabozorgi, Y. W. Teh, A Review of Subsequence Time Series Clustering, Hindawi Publishing Corporation, The Scientific World Journal,
+Volume 2014.
+\bibitem{example4} https://jmotif.github.io/sax-vsm\_site/morea/algorithm/znorm.html
+\bibitem{example5} $nop$
+\end{thebibliography}
+
+\end{document}
